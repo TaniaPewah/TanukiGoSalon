@@ -1,0 +1,20 @@
+{
+  "name": "tanuki-go-salon",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:server dev:client",
+    "dev:server": "npm run dev -w @tanuki/server",
+    "dev:client": "npm run dev -w @tanuki/client",
+    "build": "npm run build -w @tanuki/shared && npm run build -w @tanuki/client && npm run build -w @tanuki/server",
+    "start": "npm run start -w @tanuki/server",
+    "test": "npm run test -w @tanuki/shared && npm run test -w @tanuki/server"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}

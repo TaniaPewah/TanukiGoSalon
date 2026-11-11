@@ -1,0 +1,12 @@
+import Board from '@sabaki/go-board';
+export class Game {
+ board:Board; turn=1; revision=0; passes=0; history:Set<string>; remaining:Record<string,number>={'1':300000,'-1':300000}; started=Date.now(); result:string|null=null; phase='playing'; dead:number[][]=[]; accepted=new Set<string>(); last:number[]|null=null;
+ constructor(public size=9,public increment=3000){this.board=Board.fromDimensions(size);this.history=new Set([JSON.stringify(this.board.signMap)]);}
+ tick(now=Date.now()){if(this.phase!=='playing'||this.result)return;this.remaining[this.turn]=Math.max(0,this.remaining[this.turn]-(now-this.started));this.started=now;if(this.remaining[this.turn]===0)this.result=`${this.turn===1?'לבן':'שחור'} ניצח בזמן`;}
+ move(color:number,vertex:number[]|null,revision:number){this.tick();if(this.result||this.phase!=='playing')throw Error('המשחק אינו פעיל');if(color!==this.turn)throw Error('ממתינים לתור שלך');if(revision!==this.revision)throw Error('הלוח התעדכן. נסו שוב');
+ if(vertex!==null&&(!Array.isArray(vertex)||vertex.length!==2))throw Error('מהלך לא תקין');
+ if(vertex){if(vertex.length!==2||!vertex.every(Number.isInteger)||!this.board.has(vertex))throw Error('נקודה לא תקינה');const next=this.board.makeMove(color,vertex,{preventOverwrite:true,preventSuicide:true,preventKo:true});const key=JSON.stringify(next.signMap);if(this.history.has(key))throw Error('המהלך אסור לפי כלל superko');this.board=next;this.history.add(key);this.passes=0;}else this.passes++;
+ this.last=vertex;this.remaining[color]+=this.increment;this.turn=-color;this.revision++;if(this.passes===2)this.phase='scoring';}
+ score(){const b=this.board.clone();for(const v of this.dead)b.set(v,0);let black=0,white=6.5;const seen=new Set<string>();for(let y=0;y<this.size;y++)for(let x=0;x<this.size;x++){const v=[x,y],s=b.get(v);if(s){if(s===1)black++;else white++;continue;}if(seen.has(v.join()))continue;const region:number[][]=[],border=new Set<number>(),stack=[v];while(stack.length){const p=stack.pop()!;if(seen.has(p.join()))continue;seen.add(p.join());region.push(p);for(const q of b.getNeighbors(p)){const c=b.get(q);if(c)border.add(c);else if(!seen.has(q.join()))stack.push(q);}}if(border.size===1){if(border.has(1))black+=region.length;else white+=region.length;}}return {black,white};}
+ snapshot(){return {board:this.board.signMap,turn:this.turn,revision:this.revision,remaining:this.remaining,result:this.result,phase:this.phase,last:this.last,dead:this.dead,score:this.score(),captures:[this.board.getCaptures(1),this.board.getCaptures(-1)]};}
+}
